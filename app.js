@@ -64,18 +64,19 @@ function onMessage(message) {
     if(commandCreate) {
         const payload = text.replace('/createBet ', '');
         const [id, outcome] = payload.split(' ');
-        object[message.chat.id] = {
+
+        object[message.chat.id] = Object.assign(object[message.chat.id], {
             [id]: {
                 outcome,
             }
-        };
+        });
 
         console.log('payload', payload);
         telegram.sendMessage(message.chat.id, 'Done');
     }
 
     if(commandList) {
-        console.log('listBets');
+        console.log('listBets', message.from_chat_id);
         telegram.sendMessage(message.chat.id, JSON.stringify(object[message.chat.id]));
     }
 
