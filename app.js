@@ -7,8 +7,10 @@ app.use(bot.webhookCallback('/secret-path'));
 bot.telegram.setWebhook('https://https://bettertelegram.herokuapp.com/secret-path');
 
 bot.start((ctx, next) => {
+    console.log('within middleware');
     next();
 }, (ctx) => {
+    console.log('within start ');
     ctx.reply('Magical World')
 });
 
