@@ -9,7 +9,7 @@ bot.telegram.deleteWebhook().then(() => {
     bot.start((ctx) => ctx.reply('Welcome'));
     bot.help((ctx) => ctx.reply('Send me a sticker'));
     bot.command('createBet', (ctx) => {
-        const payload = ctx.text.replace('/createBet ', '');
+        const payload = ctx.message.text.replace('/createBet ', '');
         const [id, outcome] = payload.split(' ');
         ctx.session[id] = {
             outcome,
