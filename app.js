@@ -69,12 +69,12 @@ function onMessage(message) {
         };
 
         console.log('payload', payload);
-        telegram.sendMessage(message.message_id, 'Done');
+        telegram.sendMessage(message.chat.id, 'Done');
     }
 
     if(commandList) {
         console.log('listBets');
-        telegram.sendMessage(message.message_id, JSON.stringify(object));
+        telegram.sendMessage(message.chat.id, JSON.stringify(object));
     }
 
 }
