@@ -53,6 +53,7 @@ app.get('/', function (req, res) {
 });
 
 function onMessage(message) {
+    console.log({message});
     const { text, from } = message;
     console.log('-----------');
     console.log(`Got a message "${text}" from ${from.first_name} ${from.last_name}`);
@@ -68,12 +69,12 @@ function onMessage(message) {
         };
 
         console.log('payload', payload);
-        telegram.sendMessage(message.id, 'Done');
+        telegram.sendMessage(message.message_id, 'Done');
     }
 
     if(commandList) {
         console.log('listBets');
-        telegram.sendMessage(message.id,JSON.stringify(object));
+        telegram.sendMessage(message.message_id, JSON.stringify(object));
     }
 
 }
