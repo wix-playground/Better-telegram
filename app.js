@@ -37,6 +37,7 @@
 
 const TBot = require('node-telegram-bot-api');
 const express = require('express');
+const app = express();
 
 
 const telegram = new TBot('815343171:AAE2jekFZx4xSF0XJMcIymXFxqvkjV8ecM4', { polling: true });
@@ -87,7 +88,8 @@ function onInlineQuery(query) {
 telegram.on('text', onMessage);
 telegram.on('command', () => {
     console.log('command');
-})
+});
+
 telegram.on('edited_message', onMessage);
 telegram.on('inline_query', onInlineQuery);
 
