@@ -4,6 +4,7 @@ const bot = new Telegraf('815343171:AAE2jekFZx4xSF0XJMcIymXFxqvkjV8ecM4', {
     username: 'threeaxe_bot'
 });
 
+bot.deleteWebhook();
 bot.startPolling();
 bot.start((ctx) => ctx.reply('Welcome'));
 bot.help((ctx) => ctx.reply('Send me a sticker'));
