@@ -45,7 +45,7 @@ const telegram = new TBot('815343171:AAE2jekFZx4xSF0XJMcIymXFxqvkjV8ecM4', { pol
 
 app.set('port', (process.env.PORT || 5000));
 
-const object = {};
+const store = {};
 
 app.get('/', function (req, res) {
     res.send('Nothing is here');
@@ -64,12 +64,19 @@ function onMessage(message) {
     if(commandCreate) {
         const payload = text.replace('/createBet ', '');
         const [id, outcome] = payload.split(' ');
-
-        object[message.chat.id] = Object.assign(object[message.chat.id], {
-            [id]: {
-                outcome,
+        if (Object.keys(store[message.chat.id]).length > 0) {
+            store[message.chat.id] = Object.assign(store[message.chat.id], {
+                [id]: {
+                    outcome,
+                }
+            });
+        } else {
+            store[message.chat.id] = {
+                [id]: {
+                    outcome,
+                }
             }
-        });
+        }
 
         console.log('payload', payload);
         telegram.sendMessage(message.chat.id, 'Done');
@@ -77,7 +84,7 @@ function onMessage(message) {
 
     if(commandList) {
         console.log('listBets', message.from_chat_id);
-        telegram.sendMessage(message.chat.id, JSON.stringify(object[message.chat.id]));
+        telegram.sendMessage(message.chat.id, JSON.stringify(store[message.chat.id]));
     }
 
 }
