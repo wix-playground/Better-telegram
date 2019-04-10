@@ -6,6 +6,14 @@ const bot = new Telegraf('815343171:AAE2jekFZx4xSF0XJMcIymXFxqvkjV8ecM4');
 bot.use((new LocalSession({ database: 'example_db.json' })).middleware());
 
 bot.telegram.deleteWebhook().then(() => {
+
+    bot.telegram.setWebhook('https://bettertelegram.herokuapp.com//secret-path', {
+        source: 'server-cert.pem'
+    });
+
+    bot.startWebhook('/secret-path', null, 5000);
+
+
     bot.start((ctx) => ctx.reply('Welcome'));
     bot.help((ctx) => ctx.reply('Send me a sticker'));
     bot.command('createBet', (ctx) => {
