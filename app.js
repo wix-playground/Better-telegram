@@ -23,7 +23,8 @@ bot.telegram.deleteWebhook().then(() => {
     });
     bot.on('sticker', (ctx) => ctx.reply('👍'));
     bot.hears('hi', (ctx) => ctx.reply('Hey there'));
-    bot.startPolling();
+    bot.startPolling(1000, 1000);
+
 });
 
 bot.launch();
