@@ -7,9 +7,7 @@ bot.use((new LocalSession({ database: 'example_db.json' })).middleware());
 
 bot.telegram.deleteWebhook().then(() => {
 
-    bot.telegram.setWebhook('https://bettertelegram.herokuapp.com//secret-path', {
-        source: 'server-cert.pem'
-    });
+    bot.telegram.setWebhook('https://bettertelegram.herokuapp.com//secret-path', null);
 
     bot.startWebhook('/secret-path', null, 5000);
 
