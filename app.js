@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-
+const Telegraf = require('telegraf')
 
 const bot = new Telegraf('815343171:AAE2jekFZx4xSF0XJMcIymXFxqvkjV8ecM4');
 app.use(bot.webhookCallback('/secret-path'));
