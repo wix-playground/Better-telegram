@@ -19,6 +19,7 @@
   "homepage": "https://github.com/wix-playground/Better-telegram#readme",
   "dependencies": {
     "axios": "^0.18.0",
-    "telegraf": "^3.28.0"
+    "telegraf": "^3.28.0",
+    "telegraf-session-local": "0.0.6"
   }
 }
