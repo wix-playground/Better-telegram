@@ -39,10 +39,13 @@ const TBot = require('node-telegram-bot-api');
 const express = require('express');
 const app = express();
 
+// const LocalSession = require('telegraf-session-local');
 
 const telegram = new TBot('815343171:AAE2jekFZx4xSF0XJMcIymXFxqvkjV8ecM4', { polling: true });
 
 app.set('port', (process.env.PORT || 5000));
+
+const object = {};
 
 app.get('/', function (req, res) {
     res.send('Nothing is here');
@@ -53,20 +56,33 @@ function onMessage(message) {
     const { text, from } = message;
     console.log('-----------');
     console.log(`Got a message "${text}" from ${from.first_name} ${from.last_name}`);
-    // getReply(message.chat.id, text).then((replies) => {
-    //     if (!replies) { replies = [ getDefaultReply() ]; }
-    //     if (!_.isArray(replies)) { replies = [ replies ]; }
-    //     replies
-    //         .reduce((prevPromise, reply) =>
-    //                 prevPromise.then(() => sendReply(message.chat.id, reply)),
-    //             Promise.resolve()
-    //         );
-    // });
+
+    const commandCreate = text.startsWith('/createBet');
+    const commandList = text.startsWith('/listBets');
+
+    if(commandCreate) {
+        const payload = ctx.message.text.replace('/createBet ', '');
+        const [id, outcome] = payload.split(' ');
+        object[id] = {
+            outcome,
+        };
+
+        console.log('payload', payload);
+        telegram.sendMessage('Done');
+    }
+
+    if(commandList) {
+        console.log('listBets');
+        telegram.sendMessage(JSON.stringify(object));
+    }
+
 }
 
 function onInlineQuery(query) {
-    const searchTerm = query.query.trim();
-    if (searchTerm.length < 3) { return; }
+    console.log('inline',query);
+
+    // const searchTerm = query.query.trim();
+    // if (searchTerm.length < 3) { return; }
     // searchPokemons(searchTerm)
     //     .then((items) => {
     //         const result = items.slice(0, 10).map((item) => {
