@@ -1,32 +1,11 @@
-const express = require('express');
-const app = express();
-const Telegraf = require('telegraf')
-
-const bot = new Telegraf('815343171:AAE2jekFZx4xSF0XJMcIymXFxqvkjV8ecM4', {
+const telegraf = require('telegraf')
+const Telegraf = new telegraf('815343171:AAE2jekFZx4xSF0XJMcIymXFxqvkjV8ecM4', {
     channelMode: true
 });
 
-app.use(bot.webhookCallback('/secret-path'));
-bot.telegram.deleteWebhook().then(() => {
-    bot.telegram.setWebhook('https://https://bettertelegram.herokuapp.com/secret-path', null, 5000);
-});
-
-bot.start((ctx, next) => {
-    console.log('within middleware');
-    next();
-}, (ctx) => {
-    console.log('within start ');
-    ctx.reply('Magical World')
-});
-
-// bot.command('cast', () => {
-//
-// });
-
-app.get('/', (req, res) => {
-    res.send('Hello World!')
-});
-
-
-
-app.listen(process.env.PORT || 3000);
+const bot = new Telegraf(process.env.BOT_TOKEN)
+bot.start((ctx) => ctx.reply('Welcome'))
+bot.help((ctx) => ctx.reply('Send me a sticker'))
+bot.on('sticker', (ctx) => ctx.reply('👍'))
+bot.hears('hi', (ctx) => ctx.reply('Hey there'))
+bot.launch()
