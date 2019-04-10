@@ -35,13 +35,15 @@ const fetch = require('node-fetch')
 async function omdbSearch (query = '') {
     const apiUrl = `http://www.omdbapi.com/?s=${query}&apikey=9699cca`
     const response = await fetch(apiUrl)
+    console.log('response', response);
     const json = await response.json()
-    const posters = (json.Search && json.Search) || []
+    const posters = (json.Search && json.Search) || [];
+    console.log('posters', posters);
     return posters.filter(({ Poster }) => Poster && Poster.startsWith('https://')) || []
 }
 
 const bot = new Telegraf('815343171:AAE2jekFZx4xSF0XJMcIymXFxqvkjV8ecM4')
-
+bot.use(Telegraf.log());
 bot.on('inline_query', async ({ inlineQuery, answerInlineQuery }) => {
     console.log('inlineQuery',inlineQuery);
     console.log('answerInlineQuery',answerInlineQuery);
