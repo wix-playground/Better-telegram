@@ -8,7 +8,7 @@ const bot = new Telegraf('815343171:AAE2jekFZx4xSF0XJMcIymXFxqvkjV8ecM4', {
 
 app.use(bot.webhookCallback('/secret-path'));
 bot.telegram.deleteWebhook().then(() => {
-    bot.telegram.setWebhook('https://https://bettertelegram.herokuapp.com/secret-path', null);
+    bot.telegram.setWebhook('https://https://bettertelegram.herokuapp.com/secret-path', null, 5000);
 });
 
 bot.start((ctx, next) => {
