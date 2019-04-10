@@ -14,8 +14,11 @@ bot.telegram.deleteWebhook().then(() => {
         ctx.session[id] = {
             outcome,
         };
+
+        console.log('payload', payload);
     });
     bot.command('listBets', (ctx) => {
+        console.log('listBets');
         return ctx.reply(JSON.stringify(ctx.session));
     });
     bot.on('sticker', (ctx) => ctx.reply('👍'));
