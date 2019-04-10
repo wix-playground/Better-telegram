@@ -9,6 +9,9 @@ bot.telegram.deleteWebhook().then(() => {
     bot.startPolling();
     bot.start((ctx) => ctx.reply('Welcome'));
     bot.help((ctx) => ctx.reply('Send me a sticker'));
+    bot.command('createBet', (ctx) => {
+        console.log('AGRUMENTS', ...arguments);
+    })
     bot.on('sticker', (ctx) => ctx.reply('👍'));
     bot.hears('hi', (ctx) => ctx.reply('Hey there'));
 });
