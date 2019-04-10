@@ -26,5 +26,12 @@
                 <role>owner</role>
             </roles>
         </developer>
+        <developer>
+          <name>iaroslav shvets</name>
+          <email>iaroslavs@wix.com</email>
+          <roles>
+            <role>owner</role>
+          </roles>
+        </developer>
     </developers>
 </project>
