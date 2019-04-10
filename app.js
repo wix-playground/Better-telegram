@@ -43,6 +43,8 @@ async function omdbSearch (query = '') {
 const bot = new Telegraf('815343171:AAE2jekFZx4xSF0XJMcIymXFxqvkjV8ecM4')
 
 bot.on('inline_query', async ({ inlineQuery, answerInlineQuery }) => {
+    console.log('inlineQuery',inlineQuery);
+    console.log('answerInlineQuery',answerInlineQuery);
     const posters = await omdbSearch(inlineQuery.query)
     const results = posters.map((poster) => ({
         type: 'photo',
