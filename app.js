@@ -64,7 +64,9 @@ function onMessage(message) {
     if(commandCreate) {
         const payload = text.replace('/createBet ', '');
         const [id, outcome] = payload.split(' ');
-        if (Object.keys(store[message.chat.id]).length > 0) {
+
+        if (store[message.chat.id] && Object.keys(store[message.chat.id]).length > 0) {
+            console.log({store});
             store[message.chat.id] = Object.assign(store[message.chat.id], {
                 [id]: {
                     outcome,
