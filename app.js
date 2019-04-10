@@ -5,9 +5,10 @@ const Telegraf = require('telegraf')
 const bot = new Telegraf('815343171:AAE2jekFZx4xSF0XJMcIymXFxqvkjV8ecM4', {
     channelMode: true
 });
+
 app.use(bot.webhookCallback('/secret-path'));
 bot.telegram.deleteWebhook().then(() => {
-    bot.telegram.setWebhook('https://https://bettertelegram.herokuapp.com/secret-path');
+    bot.telegram.setWebhook('https://https://bettertelegram.herokuapp.com/secret-path', null);
 });
 
 bot.start((ctx, next) => {
