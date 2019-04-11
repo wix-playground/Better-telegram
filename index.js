@@ -6,7 +6,7 @@ const Markup = require('telegraf/markup');
 const WizardScene = require('telegraf/scenes/wizard');
 const chaneTypeEnum = {private: 'private', group: 'group'};
 const Scene = require('telegraf/scenes/base');
-const { enter, leave } = Stage;
+const {enter, leave} = Stage;
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
@@ -81,14 +81,63 @@ settingsScene.enter((ctx) => {
     }
 });
 
+const createBetWizard = new WizardScene('createBet',
+    (ctx) => {
+        if (ctx.chat.type !== chaneTypeEnum.private) {
+            ctx.reply('Unknown command');
+            ctx.scene.leave();
+            leave();
+        } else {
+            ctx.session.bet = {
+                bet_owner_id: ctx.message.from.id,
+            };
+            ctx.reply('Enter bet subject');
+            return ctx.wizard.next();
+        }
+    },
+    (ctx) => {
+        const userId = ctx.message.from.id;
+        if (ctx.session.bet.bet_owner_id === userId) {
+            ctx.session.bet.title = ctx.message.text;
+
+            ctx.reply('Enter bet summ');
+            return ctx.wizard.next();
+        }
+    },
+    (ctx) => {
+        const userId = ctx.message.from.id;
+        if (ctx.session.bet.bet_owner_id === userId) {
+            // TODO: add validation
+            ctx.session.bet.summ = parseInt(ctx.message.text);
+
+            ctx.reply('Enter bet options. Type \'finish\' to finalize');
+            return ctx.wizard.next();
+        }
+    },
+    (ctx) => {
+        const userId = ctx.message.from.id;
+        if (ctx.session.bet.bet_owner_id === userId) {
+            ctx.session.bet.options = {};
+            let idx = 1;
+            while (!(ctx.message.text !== 'finish')) {
+                ctx.session.bet.options[idx] = ctx.message.text;
+                idx++;
+            }
+
+            ctx.reply('Bet configure finished');
+            ctx.scene.leave();
+            leave();
+        }
+    }
+);
 
 
-
-const stage = new Stage([startScene, addCardSceneWizard, settingsScene]);
+const stage = new Stage([startScene, addCardSceneWizard, settingsScene, createBetWizard]);
 bot.use(session());
 bot.use(stage.middleware());
 
 bot.command('add_card', enter('addCard'));
 bot.command('start', enter('start'));
 bot.command('settings', enter('settings'));
+bot.command('bet', (ctx) => enter('createBet')(ctx));
 bot.launch();
