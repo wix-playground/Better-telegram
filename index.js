@@ -1,122 +1,94 @@
-const Telegraf = require('telegraf')
-const Composer = require('telegraf/composer')
-const session = require('telegraf/session')
-const Stage = require('telegraf/stage')
-const Markup = require('telegraf/markup')
-const WizardScene = require('telegraf/scenes/wizard')
-// const LocalSession = require('telegraf-session-local');
+const Telegraf = require('telegraf');
+const Composer = require('telegraf/composer');
+const session = require('telegraf/session');
+const Stage = require('telegraf/stage');
+const Markup = require('telegraf/markup');
+const WizardScene = require('telegraf/scenes/wizard');
+const chaneTypeEnum = {private: 'private', group: 'group'};
+const Scene = require('telegraf/scenes/base');
+const { enter, leave } = Stage;
 
-// TODO: Admin
-const state = {};
+const bot = new Telegraf(process.env.BOT_TOKEN);
 
-const stepHandler = new Composer();
-let store = {};
-stepHandler.action('next', (ctx) => {
-    ctx.reply('Step 2. Via inline button')
-    return ctx.wizard.next()
-});
-stepHandler.command('next', (ctx) => {
-    ctx.reply('Step 2. Via command')
-    return ctx.wizard.next()
-});
-
-
-stepHandler.command('createBet', (ctx) => {
-    console.log('createBet command', ctx);
-    const titleBet = ctx.update.message.text.replace('/createBet ', '');
-
-    const chatId = ctx.update.message.chat.id;
-
-    if(store[chatId]) {
-        store[chatId] = Object.assign(store[chatId], {
-            [titleBet]: 'the winner - not ready yet'
-        });
-    } else {
-        store[chatId] = {
-            [titleBet]: 'the winner - not ready yet',
-        }
+// Start screen
+const startScene = new Scene('start');
+startScene.enter((ctx) => {
+    ctx.reply('Welcome to the 777 bot');
+    if (ctx.chat.type === chaneTypeEnum.private) {
+        ctx.reply('Here you can configure your bot settings.\n' +
+            'Type /add_card to add you payment card.\n' +
+            'Type /settings to show you settings.\n');
     }
-
-    ctx.reply('command create Bet');
-
-    return ctx.wizard.next()
-});
-
-stepHandler.command('result', (ctx) => {
-    console.log('result');
-
-    ctx.reply('result', Markup.inlineKeyboard([
-        Markup.selective(true),
-        Markup.selective(false),
-        Markup.selective(true),
-    ]));
-
-
-});
-
-stepHandler.command('listBets', (ctx) => {
-    console.log('listBets');
-    const chatId = ctx.update.message.chat.id;
-    // console.log('chatId', chatId);
-    // console.log('store', store);
-
-    ctx.reply('Your bets in this chat: ' + JSON.stringify(store[chatId]));
-});
-
-stepHandler.action('createBet', (ctx) => {
-    console.log('createBet action', ctx);
-    state.createBet = true;
-    ctx.reply('createBet');
-    return ctx.wizard.next()
-
-});
-
-stepHandler.action('done', (ctx) => {
-    ctx.reply('Cancel');
-    return ctx.scene.leave()
-
-});
-
-stepHandler.on('message', (ctx) => {
-    console.log('message', state.createBet);
-    if(state.createBet) {
-        console.log('message state.createBet')
-        const chatId = ctx.update.message.chat.id;
-        const title = ctx.update.message.text;
-
-        if(store[chatId]) {
-            store[chatId] = Object.assign(store[chatId], {
-                [title]: 'the winner - not ready yet'
-            });
-        } else {
-            store[chatId] = {
-                [title]: 'the winner - not ready yet',
-            }
-        }
-
-        state.createBet = false;
-        ctx.reply('created bet with subject ' + title);
+    if (ctx.chat.type === chaneTypeEnum.group) {
+        ctx.reply('Hey! Hey! Hey! 777 bot in da house!');
     }
-    return ctx.wizard.next()
+    ctx.scene.leave();
+    leave();
 });
 
-stepHandler.use((ctx) => ctx.replyWithMarkdown('Press `createBet` button or type /createBet'))
+// Help screen
+bot.help((ctx) => ctx.reply('Here some help text.'));
 
-const superWizard = new WizardScene('super-wizard',
+
+// Add card screen
+const addCardSceneWizard = new WizardScene('addCard',
     (ctx) => {
-        ctx.reply('Step 1', Markup.inlineKeyboard([
-            Markup.callbackButton('❤ Cancel', 'done'),
-            Markup.callbackButton('➡️ createBet', 'createBet')
-        ]).extra())
-        return ctx.wizard.next()
+        if (ctx.chat.type !== chaneTypeEnum.private) {
+            ctx.reply('Unknown command');
+            leave();
+        } else {
+            ctx.reply('Please enter your payment card number:');
+            return ctx.wizard.next();
+        }
     },
-    stepHandler,
-)
+    (ctx) => {
+        // TODO: Here validate number
+        ctx.session.cardNumber = ctx.message.text;
 
-const bot = new Telegraf(process.env.BOT_TOKEN)
-const stage = new Stage([superWizard], { default: 'super-wizard' })
-bot.use(session())
-// bot.use((new LocalSession({ database: 'example_db.json' })).middleware());
+        ctx.reply('Please enter your payment card expire date [MM/YY]:');
+        return ctx.wizard.next();
+    },
+    (ctx) => {
+        // TODO: Here validate date
+        ctx.session.cardExpireDate = ctx.message.text;
 
-bot.use(stage.middleware())
-bot.launch()
+        ctx.reply('Please enter your payment card CVV code:');
+        return ctx.wizard.next();
+    },
+    (ctx) => {
+        // TODO: Here validate CVV
+        ctx.session.cardCVV = ctx.message.text;
+
+        ctx.reply('Card successfully added');
+        ctx.scene.leave();
+        leave();
+    }
+);
+
+
+// Show settings screen
+const settingsScene = new Scene('settings');
+settingsScene.enter((ctx) => {
+    if (ctx.chat.type !== chaneTypeEnum.private) {
+        ctx.reply('Unknown command');
+        ctx.scene.leave();
+        leave();
+    } else {
+        const {cardNumber, cardExpireDate, cardCVV} = ctx.session;
+        ctx.reply(`Your settings:\nCard number: ${cardNumber}\nCard expire date: ${cardExpireDate}\nCard CVV: ${cardCVV}`);
+        ctx.scene.leave();
+        leave();
+    }
+});
+
+
+
+
+const stage = new Stage([startScene, addCardSceneWizard, settingsScene]);
+bot.use(session());
+bot.use(stage.middleware());
+
+bot.command('add_card', enter('addCard'));
+bot.command('start', enter('start'));
+bot.command('settings', enter('settings'));
+bot.launch();

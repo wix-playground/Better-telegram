@@ -20,6 +20,9 @@
   "dependencies": {
     "axios": "^0.18.0",
     "express": "^4.16.4",
+    "humanize-duration": "^3.18.0",
+    "imdb-search": "^0.1.5",
+    "moment": "^2.24.0",
     "node-telegram-bot-api": "^0.30.0",
     "telegraf": "^3.28.0",
     "telegraf-session-local": "0.0.6"
