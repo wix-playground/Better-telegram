@@ -2,10 +2,17 @@ const _ = require('lodash');
 
 const paris = [];
 const users = [];
+const cards = [];
+
 const bankAccount = {
   money: 0,
 };
 
+const getCard = (card_id) => {
+  return _.find(cards, (card) => {
+    return card.id === card_id;
+  });
+};
 const getUser = (user_id) => {
   return _.find(users, (user) => {
     return user.id === user_id;
@@ -17,28 +24,41 @@ const getPari = (pari_id) => {
   });
 };
 
+const registerCard = ({number, user_id}) => {
+  cards.push({
+    id: number,
+    user_id,
+    number,
+    amount: 0
+  });
+};
+
 const registerUser = ({payout_card, user_id}) => {
   if (getUser(user_id)) {
     throw new Error('already registered');
   }
 
+  registerCard({number: payout_card, user_id});
+
+  const card = getCard(payout_card);
+
   users.push({
     id: user_id,
-    payout_card,
+    payout_card_id: card.id,
     participated_paris: [],
     money: 100,
   });
 };
 
-const createPari = ({subject, options, owner_id, amount}) => {
+const createPari = ({subject, options, user_id, amount}) => {
   const now = new Date().getTime();
 
   const newPari = {
-    id: now + owner_id,
+    id: now + user_id,
     creation_time: now,
     subject,
     options,
-    owner_id,
+    owner_id: user_id,
     amount,
     outcome: undefined,
     state: 'pending',
@@ -63,7 +83,7 @@ const makeBet = ({user_id, pari_id, selected_option}) => {
   }
 
   user.money = user.money - pari.amount;
-  bankAccount.money = bankAccount + pari.amount;
+  bankAccount.money = bankAccount.money + pari.amount;
 
   user.participated_paris.push({
     pari_id,
@@ -114,7 +134,9 @@ const makePayouts = ({pari_id}) => {
 
     if (participated_pari) {
       if (participated_pari.selected_option === pari.outcome) {
-        user.money = user.money + pari.amount;
+        const card = getCard(user.payout_card_id);
+        bankAccount.money = bankAccount.money - pari.amount;
+        card.amount += pari.amount;
       }
     }
   });
@@ -164,11 +186,19 @@ const checkForPariFinish = (pari_id) => {
   }
 };
 
+const transferMoneyFromPayoutCard = (user_id) => {
+  const user = getUser(user_id);
+  const card = getCard(user.payout_card_id);
+  user.money += card.amount;
+  card.amount = 0;
+};
+
 module.exports = {
   registerUser,
   createPari,
   makeBet,
   initiatePariVote,
-  voteForPariOutcome
+  voteForPariOutcome,
+  transferMoneyFromPayoutCard,
 };
 
