@@ -158,7 +158,7 @@ bot.command('addBet', (ctx) => {
            return Markup.callbackButton(`${opt}`, 'accept')
         });
 
-        ctx.reply(`${JSON.stringify(stored.title)}`, Markup.inlineKeyboard(markupOpt).extra());
+        ctx.reply(`${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)}`, Markup.inlineKeyboard(markupOpt).extra());
 
     } else {
         ctx.replyWithHTML('<b>no such bet</b>')
