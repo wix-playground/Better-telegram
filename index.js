@@ -152,10 +152,23 @@ bot.command('addBet', (ctx) => {
     const betId = ctx.message.text.replace('/addBet ', '').toString();
     const stored = store.storedBets[betId];
     if (stored) {
-        ctx.reply(`Going to Bet? \n ${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)} \n ${JSON.stringify(stored.options)}`);
+        // ctx.reply(`Going to Bet? \n ${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)} \n ${JSON.stringify(stored.options)}`);
+
+        const markupOpt = stored.options.map((opt) => {
+           return Markup.callbackButton(`${opt}`, 'accept')
+        });
+
+        ctx.reply(`${JSON.stringify(stored.title)}`, Markup.inlineKeyboard(markupOpt).extra());
+
     } else {
         ctx.replyWithHTML('<b>no such bet</b>')
     }
+});
+
+bot.action('accept', (ctx) => {
+    console.log({ctx});
+
+
 });
 
 
