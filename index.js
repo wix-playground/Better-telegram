@@ -156,7 +156,9 @@ bot.command('addBet', (ctx) => {
         // ctx.reply(`Going to Bet? \n ${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)} \n ${JSON.stringify(stored.options)}`);
 
         const markupOpt = stored.options.map((opt) => {
-           return Markup.callbackButton(`${opt}`, 'accept')
+            bot.action(`${opt}`, (ctx) => {console.log(ctx.update.callback_query.data)});
+
+           return Markup.callbackButton(`${opt}`, `${opt}`)
         });
 
         ctx.reply(`${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)}`, Markup.inlineKeyboard(markupOpt).extra());
@@ -166,15 +168,15 @@ bot.command('addBet', (ctx) => {
     }
 });
 
-bot.action('accept', (ctx) => {
-    // console.log(ctx);
-    // console.log(ctx.callbackQuery);
-    const user = ctx.from.id;
-    console.log(user);
-    const optChoosen = ctx.update.callback_query;
-    console.log(optChoosen);
-
-});
+// bot.action('accept', (ctx) => {
+//     console.log(ctx.update.callback_query);
+//     // console.log(ctx.callbackQuery);
+//     const user = ctx.from.id;
+//     // console.log(user);
+//     const optChoosen = ctx.update.callback_query;
+//     // console.log(optChoosen);
+//
+// });
 
 
 const stage = new Stage([startScene, addCardSceneWizard, settingsScene, createBetWizard]);
