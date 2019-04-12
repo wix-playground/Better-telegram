@@ -24,7 +24,8 @@ startScene.enter((ctx) => {
     if (ctx.chat.type === chaneTypeEnum.private) {
         ctx.reply('Here you can configure your bot settings.\n' +
             'Type /add_card to add you payment card.\n' +
-            'Type /settings to show you settings.\n');
+            'Type /settings to show you settings.\n' +
+            'Type /bet to create bet');
     }
     if (ctx.chat.type === chaneTypeEnum.group) {
         ctx.reply('Hey! Hey! Hey! 777 bot in da house!');
@@ -166,8 +167,12 @@ bot.command('addBet', (ctx) => {
 });
 
 bot.action('accept', (ctx) => {
-    console.log({ctx});
-
+    // console.log(ctx);
+    // console.log(ctx.callbackQuery);
+    const user = ctx.from.id;
+    console.log(user);
+    const optChoosen = ctx.update.callback_query;
+    console.log(optChoosen);
 
 });
 
