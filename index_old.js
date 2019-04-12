@@ -145,8 +145,8 @@ bot.command('addCard', (ctx) => {
 });
 
 bot.on('text', (ctx) => {
-   if
-});
+    if
+      });
 
 
 
