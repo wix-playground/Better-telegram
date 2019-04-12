@@ -141,7 +141,7 @@ const createBetWizard = new WizardScene('createBet',
             store.currentBet.options.push(ctx.message.text);
         }
 
-        ctx.reply(`Bet configured ${JSON.stringify(store.currentBet)} \n In chat use \n/addBet ${store.currentBet.id}`);
+        ctx.reply(`Bet configured ${JSON.stringify(store.currentBet)} \n In chat use \n/addBet ${store.currentBet.id}\n To finish bet\n/result ${store.currentBet.id}`);
         store.storedBets[store.currentBet.id] = store.currentBet;
 
         ctx.scene.leave();
@@ -191,18 +191,32 @@ bot.command('addBet', (ctx) => {
 });
 
 bot.command('result', (ctx) => {
+    // show option
+    const betId = ctx.message.text.replace('/result ', '').toString();
+    const stored = store.storedBets[betId];
+    const currentUser = ctx.from.id;
 
+    if(currentUser === stored.bet_owner_id) {
+        const markupOpt = stored.options.map((opt) => {
+            bot.action(`${opt}`, (ctx) => {
+                const currentUserChoice = ctx.update.callback_query.data;
+                if(!stored.output) {
+                    stored.output = currentUserChoice;
+                    ctx.editMessageText(`The winner is: ${JSON.stringify(currentUserChoice)}`)
+                } else {
+                    ctx.reply('Result already choosen');
+                }
+            });
+
+            return Markup.callbackButton(`${opt}`, `${opt}`);
+        });
+
+        // admin select winner
+        ctx.reply('select winner:', Markup.inlineKeyboard(markupOpt).extra());
+    } else {
+        ctx.replyWithHTML('<b>Permission denied</b>')
+    }
 });
-
-// bot.action('accept', (ctx) => {
-//     console.log(ctx.update.callback_query);
-//     // console.log(ctx.callbackQuery);
-//     const user = ctx.from.id;
-//     // console.log(user);
-//     const optChoosen = ctx.update.callback_query;
-//     // console.log(optChoosen);
-//
-// });
 
 
 const stage = new Stage([startScene, addCardSceneWizard, settingsScene, createBetWizard]);
