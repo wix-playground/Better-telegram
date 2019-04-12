@@ -150,7 +150,7 @@ const checkForPariFinish = (pari_id) => {
     }
   });
 
-  if (satisfied_count === voted_participants_count) {
+  if (satisfied_count === active_participants_count) {
     pari.state = 'succeeded';
   } else if (voted_participants_count === active_participants_count) {
     pari.state = 'failed';
