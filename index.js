@@ -10,6 +10,13 @@ const {enter, leave} = Stage;
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
+const store = {
+    currentBet: {
+        id: null,
+    },
+    storedBets: {}
+};
+
 // Start screen
 const startScene = new Scene('start');
 startScene.enter((ctx) => {
@@ -88,7 +95,8 @@ const createBetWizard = new WizardScene('createBet',
             ctx.scene.leave();
             leave();
         } else {
-            ctx.session.bet = {
+           store.currentBet =  {
+                id: +new Date(),
                 bet_owner_id: ctx.message.from.id,
             };
             ctx.reply('Enter bet subject');
@@ -97,8 +105,8 @@ const createBetWizard = new WizardScene('createBet',
     },
     (ctx) => {
         const userId = ctx.message.from.id;
-        if (ctx.session.bet.bet_owner_id === userId) {
-            ctx.session.bet.title = ctx.message.text;
+        if (store.currentBet.bet_owner_id === userId) {
+            store.currentBet.title = ctx.message.text;
 
             ctx.reply('Enter bet summ');
             return ctx.wizard.next();
@@ -106,9 +114,9 @@ const createBetWizard = new WizardScene('createBet',
     },
     (ctx) => {
         const userId = ctx.message.from.id;
-        if (ctx.session.bet.bet_owner_id === userId) {
+        if (store.currentBet.bet_owner_id === userId) {
             // TODO: add validation
-            ctx.session.bet.summ = parseInt(ctx.message.text);
+            store.currentBet.sum = parseInt(ctx.message.text);
 
             ctx.reply('Enter bet options 1. ');
             return ctx.wizard.next();
@@ -116,10 +124,10 @@ const createBetWizard = new WizardScene('createBet',
     },
     (ctx) => {
         const userId = ctx.message.from.id;
-        if (ctx.session.bet.bet_owner_id === userId) {
-            ctx.session.bet.options = [];
+        if (store.currentBet.bet_owner_id === userId) {
+            store.currentBet.options = [];
 
-            ctx.session.bet.options.push(ctx.message.text);
+            store.currentBet.options.push(ctx.message.text);
 
             ctx.reply('Enter bet option 2.');
             return ctx.wizard.next();
@@ -128,16 +136,27 @@ const createBetWizard = new WizardScene('createBet',
     (ctx) => {
         const userId = ctx.message.from.id;
 
-        if(ctx.session.bet.bet_owner_id === userId) {
-            ctx.session.bet.options.push(ctx.message.text);
+        if(store.currentBet.bet_owner_id === userId) {
+            store.currentBet.options.push(ctx.message.text);
         }
 
-        ctx.reply('Bet configured' + JSON.stringify(ctx.session.bet));
+        ctx.reply(`Bet configured ${JSON.stringify(store.currentBet)} \n In chat use '/addBet ${store.currentBet.id}'`);
+        store.storedBets[store.currentBet.id] = store.currentBet;
 
         ctx.scene.leave();
         leave();
     }
 );
+
+bot.command('addBet', (ctx) => {
+    const betId = ctx.message.text.replace('/addBet ', '').toString();
+    const stored = store.storedBets[betId];
+    if (stored) {
+        ctx.reply(`Going to Bet? \n ${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)} \n ${JSON.stringify(stored.options)}`);
+    } else {
+        ctx.replyWithHTML('<b>no such bet</b>')
+    }
+});
 
 
 const stage = new Stage([startScene, addCardSceneWizard, settingsScene, createBetWizard]);
