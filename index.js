@@ -141,7 +141,7 @@ const createBetWizard = new WizardScene('createBet',
             store.currentBet.options.push(ctx.message.text);
         }
 
-        ctx.reply(`Bet configured ${JSON.stringify(store.currentBet)} \n In chat use '/addBet ${store.currentBet.id}'`);
+        ctx.reply(`Bet configured ${JSON.stringify(store.currentBet)} \n In chat use \n/addBet ${store.currentBet.id}`);
         store.storedBets[store.currentBet.id] = store.currentBet;
 
         ctx.scene.leave();
@@ -152,20 +152,46 @@ const createBetWizard = new WizardScene('createBet',
 bot.command('addBet', (ctx) => {
     const betId = ctx.message.text.replace('/addBet ', '').toString();
     const stored = store.storedBets[betId];
+    // const messageId = ctx.update.update_id;
+    // console.log({messageId});
     if (stored) {
         // ctx.reply(`Going to Bet? \n ${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)} \n ${JSON.stringify(stored.options)}`);
+        let text = `${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)}`
 
         const markupOpt = stored.options.map((opt) => {
-            bot.action(`${opt}`, (ctx) => {console.log(ctx.update.callback_query.data)});
+            bot.action(`${opt}`, (ctx) => {
+                const currentUser = ctx.from.id;
+                const currentUserChoice = ctx.update.callback_query.data;
+
+                if(!stored.participated_paris) {
+                    stored.participated_paris = {};
+                }
+
+                if(!stored.participated_paris[currentUser]) {
+                    stored.participated_paris[currentUser] = currentUserChoice;
+
+                    console.log(ctx.update.callback_query.data);
+
+                    // ctx.reply(`${JSON.stringify(stored)}`, );
+                    text = text.concat(`\n${ctx.from.first_name} bets for ${currentUserChoice}`);
+                    ctx.editMessageText(`${text}`, Markup.inlineKeyboard(markupOpt).extra());
+                }
+            });
 
            return Markup.callbackButton(`${opt}`, `${opt}`)
         });
 
+
         ctx.reply(`${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)}`, Markup.inlineKeyboard(markupOpt).extra());
+        // ctx.reply(`${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)}`, Markup.inlineKeyboard(markupOpt).extra());
 
     } else {
         ctx.replyWithHTML('<b>no such bet</b>')
     }
+});
+
+bot.command('result', (ctx) => {
+
 });
 
 // bot.action('accept', (ctx) => {
