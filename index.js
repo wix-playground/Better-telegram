@@ -96,9 +96,9 @@ const createBetWizard = new WizardScene('createBet',
             ctx.scene.leave();
             leave();
         } else {
-           store.currentBet =  {
+            store.currentBet = {
                 id: +new Date(),
-                bet_owner_id: ctx.message.from.id,
+                betOwnerId: ctx.message.from.id,
             };
             ctx.reply('Enter bet subject');
             return ctx.wizard.next();
@@ -106,7 +106,7 @@ const createBetWizard = new WizardScene('createBet',
     },
     (ctx) => {
         const userId = ctx.message.from.id;
-        if (store.currentBet.bet_owner_id === userId) {
+        if (store.currentBet.betOwnerId === userId) {
             store.currentBet.title = ctx.message.text;
 
             ctx.reply('Enter bet summ');
@@ -115,7 +115,7 @@ const createBetWizard = new WizardScene('createBet',
     },
     (ctx) => {
         const userId = ctx.message.from.id;
-        if (store.currentBet.bet_owner_id === userId) {
+        if (store.currentBet.betOwnerId === userId) {
             // TODO: add validation
             store.currentBet.sum = parseInt(ctx.message.text);
 
@@ -125,7 +125,7 @@ const createBetWizard = new WizardScene('createBet',
     },
     (ctx) => {
         const userId = ctx.message.from.id;
-        if (store.currentBet.bet_owner_id === userId) {
+        if (store.currentBet.betOwnerId === userId) {
             store.currentBet.options = [];
 
             store.currentBet.options.push(ctx.message.text);
@@ -137,7 +137,7 @@ const createBetWizard = new WizardScene('createBet',
     (ctx) => {
         const userId = ctx.message.from.id;
 
-        if(store.currentBet.bet_owner_id === userId) {
+        if (store.currentBet.betOwnerId === userId) {
             store.currentBet.options.push(ctx.message.text);
         }
 
@@ -152,10 +152,12 @@ const createBetWizard = new WizardScene('createBet',
 bot.command('addBet', (ctx) => {
     const betId = ctx.message.text.replace('/addBet ', '').toString();
     const stored = store.storedBets[betId];
-    // const messageId = ctx.update.update_id;
-    // console.log({messageId});
+    ctx.getChat().then((chat) => {
+        stored.groupId = chat.id;
+    }, (rej) => {
+        throw Error(rej);
+    });
     if (stored) {
-        // ctx.reply(`Going to Bet? \n ${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)} \n ${JSON.stringify(stored.options)}`);
         let text = `${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)}`
 
         const markupOpt = stored.options.map((opt) => {
@@ -163,27 +165,23 @@ bot.command('addBet', (ctx) => {
                 const currentUser = ctx.from.id;
                 const currentUserChoice = ctx.update.callback_query.data;
 
-                if(!stored.participated_paris) {
-                    stored.participated_paris = {};
+                if (!stored.participated_paris) {
+                    stored.participated_paris = [];
                 }
 
-                if(!stored.participated_paris[currentUser]) {
-                    stored.participated_paris[currentUser] = currentUserChoice;
+                stored.participated_paris.push({
+                    id: currentUser,
+                    username: ctx.from.username,
+                    choice: currentUserChoice
+                });
 
-                    console.log(ctx.update.callback_query.data);
-
-                    // ctx.reply(`${JSON.stringify(stored)}`, );
-                    text = text.concat(`\n${ctx.from.first_name} bets for ${currentUserChoice}`);
-                    ctx.editMessageText(`${text}`, Markup.inlineKeyboard(markupOpt).extra());
-                }
+                text = text.concat(`\n${ctx.from.first_name} bets for ${currentUserChoice}`);
+                ctx.editMessageText(`${text}`, Markup.inlineKeyboard(markupOpt).extra());
             });
 
-           return Markup.callbackButton(`${opt}`, `${opt}`)
+            return Markup.callbackButton(`${opt}`, `${opt}`)
         });
-
-
         ctx.reply(`${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)}`, Markup.inlineKeyboard(markupOpt).extra());
-        // ctx.reply(`${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)}`, Markup.inlineKeyboard(markupOpt).extra());
 
     } else {
         ctx.replyWithHTML('<b>no such bet</b>')
@@ -191,24 +189,44 @@ bot.command('addBet', (ctx) => {
 });
 
 bot.command('result', (ctx) => {
-    // show option
     const betId = ctx.message.text.replace('/result ', '').toString();
     const stored = store.storedBets[betId];
     const currentUser = ctx.from.id;
 
-    if(currentUser === stored.bet_owner_id) {
+    if (currentUser === stored.betOwnerId) {
         const markupOpt = stored.options.map((opt) => {
-            bot.action(`${opt}`, (ctx) => {
-                const currentUserChoice = ctx.update.callback_query.data;
-                if(!stored.output) {
+            bot.action(`result-${opt}`, (ctx) => {
+                const currentUserChoice = ctx.update.callback_query.data.replace('result-', '');
+                if (!stored.output) {
                     stored.output = currentUserChoice;
-                    ctx.editMessageText(`The winner is: ${JSON.stringify(currentUserChoice)}`)
+                    ctx.editMessageText(`The winner is: ${JSON.stringify(currentUserChoice)}`).then((res) => {
+                        console.log('edit: ', res);
+                    }, (rej) => {
+                        console.log('rej', rej)
+                    });
+
+                    const winner = stored.participated_paris.find((participant) => {
+                        if (participant.choice === stored.output) return true;
+                    });
+
+                    const winnerName = winner ? `@${winner.username}` : `No winner`;
+
+                    bot.telegram.sendMessage(stored.groupId, `The bet was resolved by creator of Bet\nThe winner is ${winnerName}`).then((res) => {
+                        // console.log(res);
+                    }, (rej) => {
+                        console.log('rej', rej)
+                    });
+
                 } else {
-                    ctx.reply('Result already choosen');
+                    ctx.reply('Result already choosen').then((res) => {
+                        console.log(res);
+                    }, (rej) => {
+                        console.log('rej:', rej);
+                    });
                 }
             });
 
-            return Markup.callbackButton(`${opt}`, `${opt}`);
+            return Markup.callbackButton(`${opt}`, `result-${opt}`);
         });
 
         // admin select winner
@@ -217,7 +235,6 @@ bot.command('result', (ctx) => {
         ctx.replyWithHTML('<b>Permission denied</b>')
     }
 });
-
 
 const stage = new Stage([startScene, addCardSceneWizard, settingsScene, createBetWizard]);
 bot.use(session());
