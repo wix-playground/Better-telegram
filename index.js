@@ -110,24 +110,32 @@ const createBetWizard = new WizardScene('createBet',
             // TODO: add validation
             ctx.session.bet.summ = parseInt(ctx.message.text);
 
-            ctx.reply('Enter bet options. Type \'finish\' to finalize');
+            ctx.reply('Enter bet options 1. ');
             return ctx.wizard.next();
         }
     },
     (ctx) => {
         const userId = ctx.message.from.id;
         if (ctx.session.bet.bet_owner_id === userId) {
-            ctx.session.bet.options = {};
-            let idx = 1;
-            while (!(ctx.message.text !== 'finish')) {
-                ctx.session.bet.options[idx] = ctx.message.text;
-                idx++;
-            }
+            ctx.session.bet.options = [];
 
-            ctx.reply('Bet configure finished');
-            ctx.scene.leave();
-            leave();
+            ctx.session.bet.options.push(ctx.message.text);
+
+            ctx.reply('Enter bet option 2.');
+            return ctx.wizard.next();
         }
+    },
+    (ctx) => {
+        const userId = ctx.message.from.id;
+
+        if(ctx.session.bet.bet_owner_id === userId) {
+            ctx.session.bet.options.push(ctx.message.text);
+        }
+
+        ctx.reply('Bet configured' + JSON.stringify(ctx.session.bet));
+
+        ctx.scene.leave();
+        leave();
     }
 );
 
