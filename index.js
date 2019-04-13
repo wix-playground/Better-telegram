@@ -10,6 +10,8 @@ const {enter, leave} = Stage;
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
+const Logic = require('./src/logic');
+
 const store = {
     currentBet: {
         id: null,
@@ -45,32 +47,48 @@ const addCardSceneWizard = new WizardScene('addCard',
             ctx.reply('Unknown command');
             leave();
         } else {
-            ctx.reply('Please enter your payment card number:');
-            return ctx.wizard.next();
+            if(Logic.getUser(ctx.from.id)) {
+                ctx.reply('You are already registered');
+                ctx.scene.leave();
+                leave();
+            } else {
+                ctx.reply('Please enter your payment card number:');
+                return ctx.wizard.next();
+            }
         }
     },
     (ctx) => {
         // TODO: Here validate number
         ctx.session.cardNumber = ctx.message.text;
 
-        ctx.reply('Please enter your payment card expire date [MM/YY]:');
-        return ctx.wizard.next();
-    },
-    (ctx) => {
-        // TODO: Here validate date
-        ctx.session.cardExpireDate = ctx.message.text;
+        // ctx.reply('Please enter your payment card expire date [MM/YY]:');
+        // return ctx.wizard.next();
+        const payload = {
+            payout_card: ctx.session.cardNumber,
+            user_id: ctx.from.id
+        };
 
-        ctx.reply('Please enter your payment card CVV code:');
-        return ctx.wizard.next();
-    },
-    (ctx) => {
-        // TODO: Here validate CVV
-        ctx.session.cardCVV = ctx.message.text;
+        Logic.registerUser(payload);
 
         ctx.reply('Card successfully added');
         ctx.scene.leave();
         leave();
-    }
+    },
+    // (ctx) => {
+    //     // TODO: Here validate date
+    //     ctx.session.cardExpireDate = ctx.message.text;
+    //
+    //     ctx.reply('Please enter your payment card CVV code:');
+    //     return ctx.wizard.next();
+    // },
+    // (ctx) => {
+    //     // TODO: Here validate CVV
+    //     ctx.session.cardCVV = ctx.message.text;
+    //
+    //     ctx.reply('Card successfully added');
+    //     ctx.scene.leave();
+    //     leave();
+    // }
 );
 
 
@@ -141,8 +159,19 @@ const createBetWizard = new WizardScene('createBet',
             store.currentBet.options.push(ctx.message.text);
         }
 
-        ctx.reply(`Bet configured ${JSON.stringify(store.currentBet)} \n In chat use \n/addBet ${store.currentBet.id}\n To finish bet\n/result ${store.currentBet.id}`);
-        store.storedBets[store.currentBet.id] = store.currentBet;
+        // store.storedBets[store.currentBet.id] = store.currentBet;
+
+        const payload = {
+            subject: store.currentBet.title,
+            options: store.currentBet.options,
+            user_id: store.currentBet.betOwnerId,
+            amount: store.currentBet.sum,
+        };
+
+        const newBetId = Logic.createPari(payload);
+
+        ctx.reply(`Bet configured ${JSON.stringify(store.currentBet)} \n In chat use \n/addBet ${newBetId}\n To finish bet\n/result ${newBetId}`);
+
 
         ctx.scene.leave();
         leave();
@@ -151,28 +180,23 @@ const createBetWizard = new WizardScene('createBet',
 
 bot.command('addBet', (ctx) => {
     const betId = ctx.message.text.replace('/addBet ', '').toString();
-    const stored = store.storedBets[betId];
+    const stored = Logic.getPari(betId);
     ctx.getChat().then((chat) => {
         stored.groupId = chat.id;
     }, (rej) => {
-        throw Error(rej);
+        console.log('rej chatID', rej);
     });
     if (stored) {
-        let text = `${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)}`
+        let text = `${JSON.stringify(stored.subject)} - ${JSON.stringify(stored.amount)}`
 
         const markupOpt = stored.options.map((opt) => {
             bot.action(`${opt}`, (ctx) => {
                 const currentUser = ctx.from.id;
                 const currentUserChoice = ctx.update.callback_query.data;
-
-                if (!stored.participated_paris) {
-                    stored.participated_paris = [];
-                }
-
-                stored.participated_paris.push({
-                    id: currentUser,
-                    username: ctx.from.username,
-                    choice: currentUserChoice
+                Logic.makeBet({
+                    user_id: currentUser,
+                    pari_id: betId,
+                    selected_option: currentUserChoice,
                 });
 
                 text = text.concat(`\n${ctx.from.first_name} bets for ${currentUserChoice}`);
@@ -181,7 +205,7 @@ bot.command('addBet', (ctx) => {
 
             return Markup.callbackButton(`${opt}`, `${opt}`)
         });
-        ctx.reply(`${JSON.stringify(stored.title)} - ${JSON.stringify(stored.sum)}`, Markup.inlineKeyboard(markupOpt).extra());
+        ctx.reply(`${JSON.stringify(stored.subject)} - ${JSON.stringify(stored.amount)}`, Markup.inlineKeyboard(markupOpt).extra());
 
     } else {
         ctx.replyWithHTML('<b>no such bet</b>')
@@ -190,32 +214,80 @@ bot.command('addBet', (ctx) => {
 
 bot.command('result', (ctx) => {
     const betId = ctx.message.text.replace('/result ', '').toString();
-    const stored = store.storedBets[betId];
+    const stored = Logic.getPari(betId);
     const currentUser = ctx.from.id;
 
-    if (currentUser === stored.betOwnerId) {
+    if (currentUser === stored.owner_id) {
         const markupOpt = stored.options.map((opt) => {
             bot.action(`result-${opt}`, (ctx) => {
                 const currentUserChoice = ctx.update.callback_query.data.replace('result-', '');
                 if (!stored.output) {
-                    stored.output = currentUserChoice;
-                    ctx.editMessageText(`The winner is: ${JSON.stringify(currentUserChoice)}`).then((res) => {
-                        console.log('edit: ', res);
+                    Logic.initiatePariVote({
+                        pari_id: betId,
+                        outcome: currentUserChoice
+                    });
+
+
+                    ctx.editMessageText(`The winning choice is: ${JSON.stringify(currentUserChoice)}`);
+
+                    // const winner = stored.participated_paris.find((participant) => {
+                    //     if (participant.choice === stored.output) return true;
+                    // });
+
+                    // const winnerName = winner ? `@${winner.username}` : `No winner`;
+                    bot.action('yes', (ctx) => {
+
+                        const pari = Logic.getPari(betId);
+
+
+                        const user_id = ctx.from.id;
+
+                        Logic.voteForPariOutcome({
+                            user_id,
+                            pari_id: betId,
+                            is_satisfied: true,
+                        });
+
+                        if (pari.state === 'succeeded') {
+                           ctx.editMessageText('The bet was succeeded');
+                            // TODO: get winner
+
+                            const winner = '';
+                            // Logic.transferMoneyFromPayoutCard()
+                        }
+
+                        if (pari.state === 'failed') {
+                            ctx.editMessageText('The bet was failed')
+
+                        }
+                        ctx.editMessageText(`The bet was resolved by creator of Bet.\nThe winner answer is ${currentUserChoice}\n Please, vote for this`, Markup.inlineKeyboard([
+                            Markup.callbackButton(`yes - 1`, 'yes'),
+                            Markup.callbackButton('no', 'no')
+                        ]).extra())
+                    });
+
+                    bot.action('no', (ctx) => {
+                        const user_id = ctx.from.id;
+                        Logic.voteForPariOutcome({
+                            user_id,
+                            pari_id: betId,
+                            is_satisfied: false,
+                        });
+
+                        console.log('no');
+
+                    });
+                    bot.telegram.sendMessage(stored.groupId, `The bet was resolved by creator of Bet.\nThe winner answer is ${currentUserChoice}\n Please, vote for this`, {
+                        reply_markup: Markup.inlineKeyboard([
+                            Markup.callbackButton('yes', 'yes'),
+                            Markup.callbackButton('no', 'no')
+                        ])
+                    }).then((res) => {
                     }, (rej) => {
-                        console.log('rej', rej)
+                        console.log('rej sendMessage', rej)
                     });
 
-                    const winner = stored.participated_paris.find((participant) => {
-                        if (participant.choice === stored.output) return true;
-                    });
 
-                    const winnerName = winner ? `@${winner.username}` : `No winner`;
-
-                    bot.telegram.sendMessage(stored.groupId, `The bet was resolved by creator of Bet\nThe winner is ${winnerName}`).then((res) => {
-                        // console.log(res);
-                    }, (rej) => {
-                        console.log('rej', rej)
-                    });
 
                 } else {
                     ctx.reply('Result already choosen').then((res) => {
@@ -235,6 +307,8 @@ bot.command('result', (ctx) => {
         ctx.replyWithHTML('<b>Permission denied</b>')
     }
 });
+
+
 
 const stage = new Stage([startScene, addCardSceneWizard, settingsScene, createBetWizard]);
 bot.use(session());

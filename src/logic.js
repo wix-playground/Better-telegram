@@ -5,200 +5,206 @@ const users = [];
 const cards = [];
 
 const bankAccount = {
-  money: 0,
+    money: 0,
 };
 
 const getCard = (card_id) => {
-  return _.find(cards, (card) => {
-    return card.id === card_id;
-  });
+    return _.find(cards, (card) => {
+        return card.id === card_id;
+    });
 };
 const getUser = (user_id) => {
-  return _.find(users, (user) => {
-    return user.id === user_id;
-  });
+    return _.find(users, (user) => {
+        return user.id === user_id;
+    });
 };
 const getPari = (pari_id) => {
-  return _.find(paris, (pari) => {
-    return pari.id === pari_id;
-  });
+    const currentPari = _.find(paris, (pari) => {
+        return pari.id === pari_id;
+    });
+    return currentPari;
 };
 
 const registerCard = ({number, user_id}) => {
-  cards.push({
-    id: number,
-    user_id,
-    number,
-    amount: 0
-  });
+    cards.push({
+        id: number,
+        user_id,
+        number,
+        amount: 0
+    });
 };
 
 const registerUser = ({payout_card, user_id}) => {
-  if (getUser(user_id)) {
-    throw new Error('already registered');
-  }
+    if (getUser(user_id)) {
+        throw new Error('already registered');
+    }
 
-  registerCard({number: payout_card, user_id});
+    registerCard({number: payout_card, user_id});
 
-  const card = getCard(payout_card);
+    const card = getCard(payout_card);
 
-  users.push({
-    id: user_id,
-    payout_card_id: card.id,
-    participated_paris: [],
-    money: 100,
-  });
+    users.push({
+        id: user_id,
+        payout_card_id: card.id,
+        participated_paris: [],
+        money: 100,
+    });
 };
 
 const createPari = ({subject, options, user_id, amount}) => {
-  const now = new Date().getTime();
+    const now = new Date().getTime();
 
-  const newPari = {
-    id: now + user_id,
-    creation_time: now,
-    subject,
-    options,
-    owner_id: user_id,
-    amount,
-    outcome: undefined,
-    state: 'pending',
-  };
+    const newPari = {
+        id: (now + user_id).toString(),
+        creation_time: now,
+        subject,
+        options,
+        owner_id: user_id,
+        amount,
+        outcome: undefined,
+        state: 'pending',
+    };
 
-  paris.push(newPari);
+    paris.push(newPari);
+    return newPari.id;
 };
 
 
 const makeBet = ({user_id, pari_id, selected_option}) => {
-  const user = getUser(user_id);
-  const pari = getPari(pari_id);
+    const user = getUser(user_id);
+    const pari = getPari(pari_id);
 
-  if (_.find(user.participated_paris, (participated_pari) => {
-    return participated_pari.pari_id === pari_id;
-  })) {
-    throw new Error('already participating');
-  }
+    if (_.find(user.participated_paris, (participated_pari) => {
+        return participated_pari.pari_id === pari_id;
+    })) {
+        throw new Error('already participating');
+    }
 
-  if (user.money < pari.amount) {
-    throw new Error('Not enough money, go get a job!');
-  }
+    if (user.money < pari.amount) {
+        throw new Error('Not enough money, go get a job!');
+    }
 
-  user.money = user.money - pari.amount;
-  bankAccount.money = bankAccount.money + pari.amount;
+    user.money = user.money - pari.amount;
+    bankAccount.money = bankAccount.money + pari.amount;
 
-  user.participated_paris.push({
-    pari_id,
-    selected_option,
-    is_satisfied: undefined,
-  });
+    user.participated_paris.push({
+        pari_id,
+        selected_option,
+        is_satisfied: undefined,
+    });
 };
 
 const initiatePariVote = ({pari_id, outcome}) => {
-  const pari = getPari(pari_id);
+    const pari = getPari(pari_id);
+    pari.state = 'voting';
+    pari.outcome = outcome;
 
-  pari.state = 'voting';
-  pari.outcome = outcome;
+    console.log('initiatePariVote',pari);
 };
 
 const voteForPariOutcome = ({user_id, pari_id, is_satisfied}) => {
-  const pari = getPari(pari_id);
+    const pari = getPari(pari_id);
+    console.log('vot', pari);
 
-  if (pari.state !== 'voting') {
-    throw new Error('Voting period has not started/is over');
-  }
+    if (pari.state !== 'voting') {
+        throw new Error('Voting period has not started/is over');
+    }
 
-  const user = getUser(user_id);
+    const user = getUser(user_id);
 
-  const participated_pari = _.find(user.participated_paris, (participated_pari) => {
-    return participated_pari.pari_id === pari_id;
-  });
+    const participated_pari = _.find(user.participated_paris, (participated_pari) => {
+        return participated_pari.pari_id === pari_id;
+    });
 
-  if (!participated_pari) {
-    throw new Error(`Not participating in pari ID: ${pari_id}`);
-  }
-  if (participated_pari.is_satisfied !== undefined) {
-    throw new Error('Already voted');
-  }
+    if (!participated_pari) {
+        throw new Error(`Not participating in pari ID: ${pari_id}`);
+    }
+    if (participated_pari.is_satisfied !== undefined) {
+        throw new Error('Already voted');
+    }
 
-  participated_pari.is_satisfied = is_satisfied;
+    participated_pari.is_satisfied = is_satisfied;
 
-  checkForPariFinish();
+    checkForPariFinish(pari_id);
 };
 
 const makePayouts = ({pari_id}) => {
-  const pari = getPari(pari_id);
+    const pari = getPari(pari_id);
 
-  _.forEach(users, (user) => {
-    const participated_pari = _.find(user.participated_paris, (participated_pari) => {
-      return participated_pari.pari_id === pari_id;
+    _.forEach(users, (user) => {
+        const participated_pari = _.find(user.participated_paris, (participated_pari) => {
+            return participated_pari.pari_id === pari_id;
+        });
+
+        if (participated_pari) {
+            if (participated_pari.selected_option === pari.outcome) {
+                const card = getCard(user.payout_card_id);
+                bankAccount.money = bankAccount.money - pari.amount;
+                card.amount += pari.amount;
+            }
+        }
     });
-
-    if (participated_pari) {
-      if (participated_pari.selected_option === pari.outcome) {
-        const card = getCard(user.payout_card_id);
-        bankAccount.money = bankAccount.money - pari.amount;
-        card.amount += pari.amount;
-      }
-    }
-  });
 };
 
 const finishPari = ({pari_id, is_succeeded}) => {
-  if (is_succeeded) {
-    makePayouts({pari_id});
-  }
+    if (is_succeeded) {
+        makePayouts({pari_id});
+    }
 };
 
 const checkForPariFinish = (pari_id) => {
-  const pari = getPari(pari_id);
+    const pari = getPari(pari_id);
 
-  let active_participants_count = 0;
-  let voted_participants_count = 0;
-  let satisfied_count = 0;
+    let active_participants_count = 0;
+    let voted_participants_count = 0;
+    let satisfied_count = 0;
 
-  _.forEach(users, (user) => {
-    const participated_pari = _.find(user.participated_paris, (participated_pari) => {
-      return participated_pari.pari_id === pari_id;
+    _.forEach(users, (user) => {
+        const participated_pari = _.find(user.participated_paris, (participated_pari) => {
+            return participated_pari.pari_id === pari_id;
+        });
+
+        if (participated_pari) {
+            active_participants_count++;
+
+            if (participated_pari.is_satisfied) {
+                satisfied_count++;
+            }
+            if (participated_pari.is_satisfied !== undefined) {
+                voted_participants_count++;
+            }
+        }
     });
 
-    if (participated_pari) {
-      active_participants_count++;
-
-      if (participated_pari.is_satisfied) {
-        satisfied_count++;
-      }
-      if (participated_pari.is_satisfied !== undefined) {
-        voted_participants_count++;
-      }
+    if (satisfied_count === active_participants_count) {
+        pari.state = 'succeeded';
+    } else if (voted_participants_count === active_participants_count) {
+        pari.state = 'failed';
     }
-  });
 
-  if (satisfied_count === active_participants_count) {
-    pari.state = 'succeeded';
-  } else if (voted_participants_count === active_participants_count) {
-    pari.state = 'failed';
-  }
-
-  if (pari.state !== 'pending') {
-    finishPari({
-      pari_id,
-      is_succeeded: pari.state === 'succeeded'
-    })
-  }
+    if (pari.state !== 'pending') {
+        finishPari({
+            pari_id,
+            is_succeeded: pari.state === 'succeeded'
+        })
+    }
 };
 
 const transferMoneyFromPayoutCard = (user_id) => {
-  const user = getUser(user_id);
-  const card = getCard(user.payout_card_id);
-  user.money += card.amount;
-  card.amount = 0;
+    const user = getUser(user_id);
+    const card = getCard(user.payout_card_id);
+    user.money += card.amount;
+    card.amount = 0;
 };
 
 module.exports = {
-  registerUser,
-  createPari,
-  makeBet,
-  initiatePariVote,
-  voteForPariOutcome,
-  transferMoneyFromPayoutCard,
+    registerUser,
+    getUser,
+    createPari,
+    getPari,
+    makeBet,
+    initiatePariVote,
+    voteForPariOutcome,
+    transferMoneyFromPayoutCard,
 };
 
