@@ -65,7 +65,8 @@ const addCardSceneWizard = new WizardScene('addCard',
         // return ctx.wizard.next();
         const payload = {
             payout_card: ctx.session.cardNumber,
-            user_id: ctx.from.id
+            user_id: ctx.from.id,
+            username: ctx.from.username,
         };
 
         Logic.registerUser(payload);
@@ -236,10 +237,6 @@ bot.command('result', (ctx) => {
 
                     // const winnerName = winner ? `@${winner.username}` : `No winner`;
                     bot.action('yes', (ctx) => {
-
-                        const pari = Logic.getPari(betId);
-
-
                         const user_id = ctx.from.id;
 
                         Logic.voteForPariOutcome({
@@ -248,22 +245,19 @@ bot.command('result', (ctx) => {
                             is_satisfied: true,
                         });
 
-                        if (pari.state === 'succeeded') {
-                           ctx.editMessageText('The bet was succeeded');
-                            // TODO: get winner
+                        const pari = Logic.getPari(betId);
 
-                            const winner = '';
+                        if (pari.state === 'succeeded') {
+                            const winner = Logic.getWinner(betId);
                             // Logic.transferMoneyFromPayoutCard()
+                            ctx.editMessageText(`The bet was succeeded\nThe winner is @${winner.username}`);
+
+                            Logic.transferMoneyFromPayoutCard()
                         }
 
                         if (pari.state === 'failed') {
                             ctx.editMessageText('The bet was failed')
-
                         }
-                        ctx.editMessageText(`The bet was resolved by creator of Bet.\nThe winner answer is ${currentUserChoice}\n Please, vote for this`, Markup.inlineKeyboard([
-                            Markup.callbackButton(`yes - 1`, 'yes'),
-                            Markup.callbackButton('no', 'no')
-                        ]).extra())
                     });
 
                     bot.action('no', (ctx) => {
@@ -274,7 +268,11 @@ bot.command('result', (ctx) => {
                             is_satisfied: false,
                         });
 
-                        console.log('no');
+                        const pari = Logic.getPari(betId);
+
+                        if (pari.state === 'failed') {
+                            ctx.editMessageText('The bet was failed')
+                        }
 
                     });
                     bot.telegram.sendMessage(stored.groupId, `The bet was resolved by creator of Bet.\nThe winner answer is ${currentUserChoice}\n Please, vote for this`, {

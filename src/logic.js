@@ -34,7 +34,7 @@ const registerCard = ({number, user_id}) => {
     });
 };
 
-const registerUser = ({payout_card, user_id}) => {
+const registerUser = ({payout_card, user_id, username}) => {
     if (getUser(user_id)) {
         throw new Error('already registered');
     }
@@ -45,6 +45,7 @@ const registerUser = ({payout_card, user_id}) => {
 
     users.push({
         id: user_id,
+        username,
         payout_card_id: card.id,
         participated_paris: [],
         money: 100,
@@ -98,13 +99,10 @@ const initiatePariVote = ({pari_id, outcome}) => {
     const pari = getPari(pari_id);
     pari.state = 'voting';
     pari.outcome = outcome;
-
-    console.log('initiatePariVote',pari);
 };
 
 const voteForPariOutcome = ({user_id, pari_id, is_satisfied}) => {
     const pari = getPari(pari_id);
-    console.log('vot', pari);
 
     if (pari.state !== 'voting') {
         throw new Error('Voting period has not started/is over');
@@ -197,6 +195,16 @@ const transferMoneyFromPayoutCard = (user_id) => {
     card.amount = 0;
 };
 
+const getWinner = (pari_id) => {
+    const pari = getPari(pari_id);
+    const winner = _.find(users, _.flow(
+        _.property('participated_paris'),
+        _.partialRight(_.every, {pari_id, selected_option: pari.outcome})
+    ));
+
+    return winner;
+}
+
 module.exports = {
     registerUser,
     getUser,
@@ -206,5 +214,6 @@ module.exports = {
     initiatePariVote,
     voteForPariOutcome,
     transferMoneyFromPayoutCard,
+    getWinner
 };
 
