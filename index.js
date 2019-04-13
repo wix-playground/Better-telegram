@@ -252,7 +252,7 @@ bot.command('result', (ctx) => {
                             // Logic.transferMoneyFromPayoutCard()
                             ctx.editMessageText(`The bet was succeeded\nThe winner is @${winner.username}`);
 
-                            Logic.transferMoneyFromPayoutCard()
+                            Logic.transferMoneyFromPayoutCard(winner.id)
                         }
 
                         if (pari.state === 'failed') {
