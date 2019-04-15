@@ -30,7 +30,7 @@ startScene.enter((ctx) => {
             'Type /bet to create bet');
     }
     if (ctx.chat.type === chaneTypeEnum.group) {
-        ctx.reply('Hey! Hey! Hey! 777 bot in da house!');
+        ctx.reply('Hey! Hey! Hey! 777 bot in da house!\nPlease, add cart here: \n http://t.me/@threeAxe_bot');
     }
     ctx.scene.leave();
     leave();
@@ -101,8 +101,10 @@ settingsScene.enter((ctx) => {
         ctx.scene.leave();
         leave();
     } else {
-        const {cardNumber, cardExpireDate, cardCVV} = ctx.session;
-        ctx.reply(`Your settings:\nCard number: ${cardNumber}\nCard expire date: ${cardExpireDate}\nCard CVV: ${cardCVV}`);
+        const {cardNumber} = ctx.session;
+        const user = Logic.getUser(ctx.from.id);
+
+        ctx.reply(`Your settings:\nCard number: ${cardNumber}\nMoney: ${user.money}`);
         ctx.scene.leave();
         leave();
     }
@@ -128,7 +130,7 @@ const createBetWizard = new WizardScene('createBet',
         if (store.currentBet.betOwnerId === userId) {
             store.currentBet.title = ctx.message.text;
 
-            ctx.reply('Enter bet summ');
+            ctx.reply('Enter bet sum');
             return ctx.wizard.next();
         }
     },
@@ -209,7 +211,7 @@ bot.command('addBet', (ctx) => {
         ctx.reply(`${JSON.stringify(stored.subject)} - ${JSON.stringify(stored.amount)}`, Markup.inlineKeyboard(markupOpt).extra());
 
     } else {
-        ctx.replyWithHTML('<b>no such bet</b>')
+        ctx.replyWithHTML('<b>no such bet</b>');
     }
 });
 
@@ -231,12 +233,7 @@ bot.command('result', (ctx) => {
 
                     ctx.editMessageText(`The winning choice is: ${JSON.stringify(currentUserChoice)}`);
 
-                    // const winner = stored.participated_paris.find((participant) => {
-                    //     if (participant.choice === stored.output) return true;
-                    // });
-
-                    // const winnerName = winner ? `@${winner.username}` : `No winner`;
-                    bot.action('yes', (ctx) => {
+                    bot.action('YES', (ctx) => {
                         const user_id = ctx.from.id;
 
                         Logic.voteForPariOutcome({
@@ -260,7 +257,7 @@ bot.command('result', (ctx) => {
                         }
                     });
 
-                    bot.action('no', (ctx) => {
+                    bot.action('NO', (ctx) => {
                         const user_id = ctx.from.id;
                         Logic.voteForPariOutcome({
                             user_id,
@@ -277,8 +274,8 @@ bot.command('result', (ctx) => {
                     });
                     bot.telegram.sendMessage(stored.groupId, `The bet was resolved by creator of Bet.\nThe winner answer is ${currentUserChoice}\n Please, vote for this`, {
                         reply_markup: Markup.inlineKeyboard([
-                            Markup.callbackButton('yes', 'yes'),
-                            Markup.callbackButton('no', 'no')
+                            Markup.callbackButton('yes', 'YES'),
+                            Markup.callbackButton('no', 'NO')
                         ])
                     }).then((res) => {
                     }, (rej) => {
@@ -288,7 +285,7 @@ bot.command('result', (ctx) => {
 
 
                 } else {
-                    ctx.reply('Result already choosen').then((res) => {
+                    ctx.reply('Result already chosen').then((res) => {
                         console.log(res);
                     }, (rej) => {
                         console.log('rej:', rej);
